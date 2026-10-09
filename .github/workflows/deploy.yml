@@ -1,0 +1,54 @@
+name: 部署到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 准备站点产物（仅 index.html）
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+
+      - name: 校验站点产物
+        run: |
+          test -f _site/index.html || { echo "错误：_site/index.html 不存在"; exit 1; }
+          size=$(wc -c < _site/index.html)
+          echo "index.html 大小：${size} 字节"
+          test "$size" -gt 1024 || { echo "错误：文件过小，复制可能出错"; exit 1; }
+          grep -q '</html>' _site/index.html || { echo "错误：缺少 </html>，文件可能被截断"; exit 1; }
+          ls -la _site
+
+      - name: 设置 Pages
+        uses: actions/configure-pages@v6
+
+      - name: 上传站点产物
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
