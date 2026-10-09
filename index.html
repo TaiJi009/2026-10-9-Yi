@@ -469,12 +469,11 @@ const RULES = (() => {
 
   const huBuild = (b,m) => [...m.lower.map(i => b[i]), ...m.upper.map(i => b[i])];
 
-  // 大衍筮法抽一爻：返回 6 / 7 / 8 / 9（1:5:7:3）
+  // 大衍筮法抽一爻：返回 6 / 7 / 8 / 9（老阴:少阳:少阴:老阳 = 1:5:7:3）
   function drawValue(){
-    const r = Math.random();
-    if(r < 1/16) return 6;
-    if(r < 6/16) return 7;
-    if(r < 13/16) return 8;
+    const p = DATA.LINE_PROB;
+    let r = Math.random(), acc = 0;
+    for(const v of [6,7,8,9]){ acc += p[v]; if(r < acc) return v; }
     return 9;
   }
 
