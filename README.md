@@ -15,7 +15,7 @@ https://taiji009.github.io/2026-10-9-Yi/
 ## 当前状态
 
 `index.html` 为 2.0 版：单文件、约 1850 行，内联 CSS + 原生 JS，零依赖。
-六屏全通，规则自检 25 项全绿。
+六屏全通，规则自检全绿（`node scripts/check-rules.mjs`，CI 每次 PR 都跑）。
 
 ## 六屏流程
 
@@ -151,9 +151,19 @@ https://taiji009.github.io/2026-10-9-Yi/
 
 ## 自检
 
-打开 `index.html?debug`，控制台会跑 25 条断言：卦名表、先天生成序、`bitsToTrigram`/`bitsToSixiang`、
+打开 `index.html?debug`，控制台会跑 24 条断言：卦名表、先天生成序、`bitsToTrigram`/`bitsToSixiang`、
 15 格系统、综/错/互抽查、**生演不变量**（每层恰好 2^d 个互不相同的节点）、
 16 万次采样验证大衍概率。
+
+同一条命令也能在命令行跑，CI 用的就是它：
+
+```bash
+node scripts/check-rules.mjs
+```
+
+它不另抄一份断言，而是**从 `index.html` 里把 `?debug` 那段源码抽出来直接执行**，
+外加结构冒烟（doctype / 标签配对 / 零外部依赖 / 无绝对路径资源）。
+所以页面里跑什么，CI 就跑什么——改了一边另一边不可能漏。
 
 也可以在控制台直接用 `window.YI` 里的
 `DATA / RULES / STORE / RENDER / ANIM / GROW / STAGE / FSM / PLAYS` 调试：
@@ -218,6 +228,19 @@ python3 -m http.server 8777
 首次启用需一次性配置：仓库 **Settings → Pages → Source** 选 **GitHub Actions**
 （不要选 "Deploy from a branch"，否则部署会以 `Get Pages site failed` 失败）。
 也可在 **Actions** 页选「部署到 GitHub Pages」→ **Run workflow** 手动触发一次。
+
+## 协作流程
+
+`main` 已设分支保护（ruleset `protect-main`）：**不能直接推送，改动必须走 PR**。
+批准数设为 0，所以单人也能自己合并——GitHub 不允许批准自己的 PR。
+
+1. 开分支：`git switch -c claude/<主题>`
+2. 改完提交、推送：`git push -u origin claude/<主题>`
+3. 开 PR：`gh pr create --base main`
+4. 等「校验」工作流变绿（`.github/workflows/ci.yml`，跑 `scripts/check-rules.mjs`）
+5. 合并（建议 **Squash and merge**，把分支上的多个提交压成一个进 `main`）
+
+合并进 `main` 后，部署工作流才会触发，Pages 随之更新——PR 期间线上保持旧版。
 
 ## 文档
 
