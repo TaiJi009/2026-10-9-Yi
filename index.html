@@ -1803,7 +1803,7 @@ const EVENTS = (() => {
     const t = (label, ok) => console.log((ok ? '✓ ' : '✗ ') + label);
     t('乾 111111 → 乾为天', RULES.bitsToName([1,1,1,1,1,1]) === '乾为天');
     t('坤 000000 → 坤为地', RULES.bitsToName([0,0,0,0,0,0]) === '坤为地');
-    t('地天泰 = 7',        RULES.bitsToValue([1,1,1,0,0,0]) === 8);
+    t('地天泰 = 7',        RULES.bitsToValue([1,1,1,0,0,0]) === 7);
     t('天地否 = 56',       RULES.bitsToValue([0,0,0,1,1,1]) === 56);
     t('水火既济',          RULES.bitsToName([1,0,1,0,1,0]) === '水火既济');
     t('山水蒙',            RULES.bitsToName([0,1,0,0,0,1]) === '山水蒙');
