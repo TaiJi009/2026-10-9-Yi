@@ -27,10 +27,6 @@ jobs:
         with:
           node-version: 24
 
-      # —— 旧单文件站点（index.html 还在，PR2 移除它时一并删这段）——
-      - name: 校验 index.html
-        run: node scripts/check-rules.mjs
-
       # —— 前端 ——
       - name: 安装前端依赖
         run: npm ci

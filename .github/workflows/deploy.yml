@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - index.html
+      - frontend/**
       - .github/workflows/deploy.yml
   workflow_dispatch:
 
@@ -27,19 +27,32 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v5
 
-      - name: 准备站点产物（仅 index.html）
-        run: |
-          mkdir -p _site
-          cp index.html _site/index.html
+      - name: 设置 Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: npm ci
+        working-directory: frontend
+
+      - name: 构建站点
+        run: npm run build
+        working-directory: frontend
 
       - name: 校验站点产物
         run: |
-          test -f _site/index.html || { echo "错误：_site/index.html 不存在"; exit 1; }
-          size=$(wc -c < _site/index.html)
+          f=frontend/dist/index.html
+          test -f "$f" || { echo "错误：$f 不存在"; exit 1; }
+          size=$(wc -c < "$f")
           echo "index.html 大小：${size} 字节"
-          test "$size" -gt 1024 || { echo "错误：文件过小，复制可能出错"; exit 1; }
-          grep -q '</html>' _site/index.html || { echo "错误：缺少 </html>，文件可能被截断"; exit 1; }
-          ls -la _site
+          test "$size" -gt 1024 || { echo "错误：文件过小，构建可能出错"; exit 1; }
+          grep -q '</html>' "$f" || { echo "错误：缺少 </html>，文件可能被截断"; exit 1; }
+          # 子路径哨兵：Vite base 丢了就会白屏，宁可这里红也不要线上炸
+          grep -q '/2026-10-9-Yi/' "$f" || { echo "错误：产物里没有 /2026-10-9-Yi/ —— vite.config.ts 的 base 没生效"; exit 1; }
+          ls -la frontend/dist
 
       - name: 设置 Pages
         uses: actions/configure-pages@v6
@@ -47,7 +60,7 @@ jobs:
       - name: 上传站点产物
         uses: actions/upload-pages-artifact@v5
         with:
-          path: _site
+          path: frontend/dist
 
       - name: 部署到 GitHub Pages
         id: deployment

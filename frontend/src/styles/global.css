@@ -1,17 +1,284 @@
 /* ==========================================================================
-   脚手架占位样式 —— PR2 将把 index.html 的 <style> 块（L7–292，
-   tone ramp / 六屏布局 / 爻几何）逐字移植到这里。
+   TOKENS —— 明度阶梯（tone ramp）与节奏常量
+   全站仅用黑白灰，靠明度分层承载语义。
    ========================================================================== */
-:root {
-  --t0: #0a0a0a;
-  --w: #f5f5f5;
+:root{
+  --t0:#06060a; --t1:#0c0c11; --t2:#15151b; --t3:#212128; --t4:#32323b;
+  --t5:#4a4a55; --t6:#6c6c78; --t7:#9898a6; --t8:#c8c8d4; --t9:#ececf3; --w:#fff;
+
+  --ink:#8f8f9c;        /* 静爻 */
+  --ink-hi:#e8e8ef;     /* 落定爻 */
+  --ink-max:#ffffff;    /* 动爻 */
+
+  --ease-settle:cubic-bezier(.4,0,.2,1);
+
+  --font-ui:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --font-cn:"Songti SC","STSong","Noto Serif SC",Georgia,serif;
+
+  --ygap:12px; --yh:15px; --yw:170px;
 }
-html, body { height: 100%; }
-body {
-  margin: 0;
-  background: var(--t0);
-  color: var(--w);
-  font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
-  display: grid;
-  place-items: center;
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--t0);color:var(--t8);font-family:var(--font-ui);
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+/* 极淡网格 + 中心暗角，给"虚空"一点质感 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size:64px 64px, 64px 64px;
+  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 18%, transparent 76%);
+  mask-image:radial-gradient(circle at 50% 50%, #000 18%, transparent 76%);
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 50%, transparent 28%, rgba(0,0,0,.74) 100%);
+}
+
+/* ==========================================================================
+   LAYOUT —— 舞台与六屏
+   ========================================================================== */
+#stage{position:fixed;inset:0;z-index:1}
+.screen{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;padding:24px;
+  transition:opacity .42s var(--ease-settle);
+}
+.screen.active{opacity:1;pointer-events:auto}
+
+.hint{
+  position:absolute;bottom:28px;left:50%;transform:translateX(-50%);
+  font-size:12px;letter-spacing:.32em;color:var(--t6);white-space:nowrap;
+}
+.hint b{color:var(--t8);font-weight:400}
+
+/* ==========================================================================
+   YAO —— 全站唯一的图形原子
+   阳爻 = 两段 scaleX(1) 拼成实线；阴爻 = 两段 scaleX(.88)，中缝裂开。
+   翻爻只 morph scaleX，无 DOM 交换、无 reflow。
+   ========================================================================== */
+.stack{display:flex;flex-direction:column-reverse;gap:var(--ygap);width:var(--yw)}
+.yao{position:relative;width:100%;height:var(--yh);flex:none}
+.yao .seg{position:absolute;top:0;height:100%;width:50%;background:var(--ink);border-radius:1px}
+.yao .seg-l{left:0;transform-origin:0 50%}
+.yao .seg-r{left:50%;transform-origin:100% 50%}
+.yao[data-yang="0"] .seg{transform:scaleX(.88)}
+
+.yao .glow{
+  position:absolute;inset:-4px -3px;border-radius:3px;
+  background:var(--ink-max);filter:blur(5px);opacity:0;pointer-events:none;
+}
+.yao .mark{
+  position:absolute;right:calc(100% + 10px);top:50%;transform:translateY(-50%);
+  font-family:var(--font-cn);font-size:14px;line-height:1;color:var(--ink-max);opacity:0;
+  letter-spacing:0;
+}
+.yao[data-moving="1"] .mark{opacity:.9}
+
+.yao[data-ghost="1"]{opacity:.16}
+
+.stack[data-phase="settled"] .yao[data-moving="0"] .seg{background:var(--ink-hi)}
+.stack[data-phase="settled"] .yao[data-moving="1"] .seg{background:var(--ink-max)}
+.stack[data-phase="settled"] .yao[data-moving="1"] .glow{opacity:.55;animation:breathe 2.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.32}50%{opacity:.78}}
+
+/* 高亮档 —— 错综页演算时用 */
+.yao[data-hot="hot"] .seg{background:var(--ink-max)}
+.yao[data-hot="hot"] .glow{opacity:.7}
+.yao[data-hot="dim"] .seg{background:var(--t3)}
+.yao[data-hot="kept"] .seg{background:var(--w);box-shadow:0 0 11px rgba(255,255,255,.32)}
+.yao[data-hot="grpA"] .seg,
+.yao[data-hot="grpB"] .seg{background:var(--w);box-shadow:0 0 11px rgba(255,255,255,.32)}
+.yao[data-hot="grpA"]::after,
+.yao[data-hot="grpB"]::after{
+  content:"";position:absolute;left:-9px;right:-9px;top:-5px;bottom:-5px;
+  border:1px solid rgba(255,255,255,.45);border-radius:2px;
+  animation:grpPulse .95s ease-in-out infinite;
+}
+.yao[data-hot="grpB"]::after{border-style:dashed}
+@keyframes grpPulse{0%,100%{opacity:.42}50%{opacity:1}}
+
+/* ==========================================================================
+   SCREEN 0 —— 静 · 太极
+   ========================================================================== */
+.taiji{
+  width:238px;height:238px;position:relative;z-index:2;
+  cursor:pointer;outline:none;display:block;
+  filter:drop-shadow(0 0 26px rgba(255,255,255,.14));
+  animation:taijiBreathe 5.2s ease-in-out infinite;
+}
+@keyframes taijiBreathe{
+  0%,100%{transform:scale(1);filter:drop-shadow(0 0 20px rgba(255,255,255,.10))}
+  50%{transform:scale(1.04);filter:drop-shadow(0 0 40px rgba(255,255,255,.22))}
+}
+#rest .halo{
+  position:absolute;width:380px;height:380px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle, rgba(255,255,255,.085) 0%, transparent 68%);
+  animation:haloBreathe 5.2s ease-in-out infinite;
+}
+@keyframes haloBreathe{0%,100%{opacity:.55}50%{opacity:1}}
+.taiji svg{width:100%;height:100%;display:block;border-radius:50%}
+
+/* ==========================================================================
+   SCREEN 1 —— 生演（点击驱动的抽卡生长）
+   金字塔倒置：太极在下、八卦在上。
+   ========================================================================== */
+#gen-svg{width:min(100%,1040px);max-height:84vh}
+.gen-link{stroke:var(--t4);stroke-width:1.2;fill:none;stroke-dasharray:1;stroke-dashoffset:1}
+.gen-glyph{color:#c8c8d4}
+.gen-node{transform-box:fill-box;transform-origin:50% 50%}
+.gen-line{transform-box:fill-box;transform-origin:50% 50%}
+.gen-seed{transform-box:fill-box;transform-origin:50% 50%;pointer-events:none}
+.gen-ghost{fill:none;stroke:var(--t4);stroke-width:1.5;stroke-dasharray:5 6;opacity:0;pointer-events:none}
+.gen-hit{fill:transparent;stroke:none}
+.gen-node[data-clickable="1"]{cursor:pointer}
+.gen-node[data-clickable="1"]:hover{filter:drop-shadow(0 0 12px rgba(255,255,255,.5))}
+.gen-node:focus{outline:none}
+.gen-node:focus-visible .gen-hit{stroke:var(--t7);stroke-width:1.5;stroke-dasharray:4 3}
+.gen-label{fill:var(--t7);font-family:var(--font-cn);font-size:18px;text-anchor:middle}
+.gen-label.dim{fill:var(--t5);font-size:15px;text-anchor:start}
+
+/* ==========================================================================
+   SCREEN 2 —— 重卦 · 六十四卦矩阵
+   ========================================================================== */
+#gen-matrix{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
+#matrix-svg{width:min(100%,1120px);max-height:80vh}
+
+/* ==========================================================================
+   SCREEN 3 —— 起卦
+   ========================================================================== */
+.cast-wrap{display:flex;flex-direction:column;align-items:center;gap:26px}
+.cast-head{font-size:12.5px;letter-spacing:.34em;color:var(--t6);display:flex;gap:20px;align-items:baseline}
+.cast-head b{color:var(--t9);font-family:var(--font-cn);font-size:22px;letter-spacing:.08em;font-weight:400}
+.cast-stack{display:flex;flex-direction:column-reverse;gap:15px;width:200px}
+.slot{display:flex;align-items:center;gap:20px}
+.slot .yao{flex:none;width:200px;height:16px}
+.slot .val{
+  font-family:var(--font-cn);font-size:13px;color:var(--t6);
+  white-space:nowrap;min-width:118px;letter-spacing:.1em;
+}
+.slot .val.live{color:var(--t9)}
+
+/* ==========================================================================
+   SCREEN 4 —— 成卦
+   ========================================================================== */
+.settle-wrap{display:flex;flex-direction:column;align-items:center;gap:30px}
+.pair{display:flex;align-items:flex-start;gap:44px}
+.pair .col{display:flex;flex-direction:column;align-items:center;gap:14px}
+.pair .cap{font-size:11px;letter-spacing:.3em;color:var(--t6)}
+.arrow{font-size:19px;color:var(--t5);align-self:center;margin-top:60px}
+.hex-box{position:relative;padding:20px 30px;border:1px solid var(--t2);border-radius:3px}
+.sheen{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:3px}
+.sheen i{
+  position:absolute;top:-40%;left:-60%;width:36%;height:180%;display:block;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.17),transparent);
+  transform:skewX(-18deg);
+}
+.hex-name{
+  font-family:var(--font-cn);font-size:24px;letter-spacing:.26em;color:var(--t9);
+  white-space:nowrap;opacity:0;
+}
+.hex-sub{font-size:12px;letter-spacing:.34em;color:var(--t6);opacity:0;text-align:center}
+
+/* ==========================================================================
+   SCREEN 5 —— 错综演算
+   硬约束：本卦框与展示位框必须同行、等几何、固定 gap。
+   由此 dx/dy、交卦错身量、互卦的源爻↔目标爻映射全是常数，无需逐帧测量。
+   ========================================================================== */
+#network{flex-direction:column;gap:18px}
+.net-toolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+.net-title{font-family:var(--font-cn);font-size:15px;letter-spacing:.3em;color:var(--t7)}
+.net-btn{
+  font-family:var(--font-ui);font-size:12px;letter-spacing:.2em;
+  color:var(--t8);background:transparent;border:1px solid var(--t4);
+  padding:7px 15px;border-radius:2px;cursor:pointer;
+  transition:border-color .25s,color .25s,background .25s;
+}
+.net-btn:hover{color:var(--w);border-color:var(--t7);background:rgba(255,255,255,.045)}
+
+.net-board{display:flex;gap:24px;align-items:flex-start;justify-content:center;width:100%}
+.board-col{display:flex;flex-direction:column;gap:14px;flex:0 0 auto}
+.board-mid{display:flex;flex-direction:column;gap:20px;align-items:center}
+.board-top{display:flex;gap:14px;justify-content:center}
+.board-pair{display:flex;gap:36px;position:relative;align-items:flex-start}
+
+.frame{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:18px 26px;border:1px solid var(--t2);border-radius:3px;
+  min-width:212px;   /* 两框等宽是硬约束的一部分 */
+}
+.f-stack{
+  position:relative;
+  --yw:158px; --yh:14px; --ygap:12px;
+}
+.f-cap{font-size:10.5px;letter-spacing:.34em;color:var(--t6)}
+.frame .hex-name{font-size:22px}
+
+/* 在飞的复制体：覆盖在本卦框上，z 高于两框 */
+.stack.guest{position:absolute;pointer-events:none;z-index:5;margin:0}
+
+/* 卡片 */
+.card{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 10px;min-width:104px;
+  background:rgba(10,10,14,.74);border:1px solid var(--t2);border-radius:3px;
+  font-family:var(--font-ui);color:inherit;cursor:pointer;
+  transition:border-color .22s,background .22s,transform .22s var(--ease-settle);
+}
+.card:hover,.card:focus-visible{
+  border-color:var(--t7);background:rgba(24,24,30,.95);outline:none;
+  transform:translateY(-2px);z-index:6;
+}
+.card[data-active="1"]{border-color:var(--w);background:rgba(32,32,40,.96)}
+.card .mini{display:flex;flex-direction:column-reverse;gap:3.5px;width:68px}
+.card .mini .yao{height:4.5px;width:68px}
+.card .mini .seg{background:var(--t7);border-radius:.5px}
+.card .c-label{font-size:10px;letter-spacing:.18em;color:var(--t6)}
+.card .c-name{font-family:var(--font-cn);font-size:13.5px;letter-spacing:.1em;color:var(--t8)}
+.card .c-badge{
+  visibility:hidden;font-size:9.5px;letter-spacing:.12em;color:var(--t6);
+  border:1px solid var(--t4);border-radius:2px;padding:1px 5px;
+}
+.card[data-dup="1"] .c-badge{visibility:visible}
+
+/* 互卦抽取括号（沿用 1.0） */
+.bracket{
+  position:absolute;width:9px;opacity:0;top:0;height:0;
+  border:1px solid rgba(255,255,255,.6);transition:opacity .22s;
+}
+.bracket.l{left:-17px;border-right:none}
+.bracket.r{right:-17px;border-left:none}
+.bracket.on{opacity:.92}
+
+/* ==========================================================================
+   HUD
+   ========================================================================== */
+#skip{
+  position:fixed;right:24px;bottom:24px;z-index:9;
+  font-family:var(--font-ui);font-size:11.5px;letter-spacing:.28em;
+  color:var(--t6);background:transparent;border:1px solid var(--t3);
+  padding:8px 16px;border-radius:2px;cursor:pointer;
+  opacity:0;pointer-events:none;transition:opacity .3s,color .25s,border-color .25s;
+}
+#skip.on{opacity:1;pointer-events:auto}
+#skip:hover{color:var(--w);border-color:var(--t7)}
+
+@media (prefers-reduced-motion: reduce){
+  .taiji{animation:none}
+  .stack[data-phase="settled"] .yao[data-moving="1"] .glow{animation:none;opacity:.6}
+}
+
+@media (max-width: 980px){
+  /* 竖排后内容会高于视口，本屏需要能滚 */
+  #network{justify-content:flex-start;overflow-y:auto}
+  .net-board{flex-direction:column;align-items:center}
+  .board-col{flex-direction:row;flex-wrap:wrap;justify-content:center}
+  .board-pair{gap:20px}
+  .frame{min-width:0;padding:12px 16px}
+  .f-stack{--yw:110px;--yh:11px;--ygap:9px}
 }
