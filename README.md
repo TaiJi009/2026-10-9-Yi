@@ -211,13 +211,35 @@ DATA → RULES → STORE → RENDER → ANIM → GROW / STAGE → FSM → EVENTS
 
 系统开启「减弱动态效果」时，所有时长乘以 0.15 并关掉抖动层——保留叙事，但不刺激。
 
+## 目录结构（迁移中）
+
+线上站点仍是下面这个单文件 `index.html`（由 `deploy.yml` 发布），本次新增的两个目录
+是前后端分离的脚手架，**尚未接管站点**：
+
+```
+2026-10-9-Yi/
+├── index.html          # 现行站点：单文件原型（仍是 Pages 上跑的东西）
+├── frontend/           # Vite + React + TypeScript —— 六屏重写在此进行（下一步）
+├── backend/            # Node.js + Express —— API 骨架，当前只有 /api/health
+└── scripts/            # check-rules.mjs：旧单文件规则自检（重写完成后删除）
+```
+
 ## 开发环境
 
-无构建、无依赖。直接用浏览器打开 `index.html` 即可，或起一个静态服务：
+前端：无构建、无依赖。直接用浏览器打开 `index.html` 即可，或起一个静态服务：
 
 ```bash
 python3 -m http.server 8777
 ```
+
+脚手架（frontend/ 与 backend/）需要 Node 24，各自独立安装依赖：
+
+```bash
+cd frontend && npm ci && npm run dev   # http://localhost:5173/2026-10-9-Yi/
+cd backend  && npm ci && npm run dev   # http://localhost:8787/api/health
+```
+
+`frontend/vite.config.ts` 已把 `/api` 代理到本机后端，两个服务同时开着即可联调。
 
 ## 部署
 
