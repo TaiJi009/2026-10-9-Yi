@@ -375,6 +375,22 @@ async function instant() {
   token++ // 让在飞的 beat 静默退出
   phase = 'done'
 
+  // 打断收尾：在飞的 beat 已把子节点登记进 nodes/kids，但还没绘制（它在
+  // 「蓄」段之后才 drawNode）。先把它瞬间画出来，否则 finish 会摸到 null.g
+  // 抛异常卡在本屏 —— 2.0 单文件版同款缺陷，这次一并修掉。
+  nodes.forEach((nn) => {
+    const n = nn as LiveNode
+    if (n.d === 0 || n.g) return
+    const p = byId[n.parent!] as LiveNode
+    drawLink(p, n)
+    const g = drawNode(n)
+    g.style.opacity = '1'
+    n.link!.style.opacity = '1'
+    drawGhosts(n)
+    drawLabel(n)
+    if (n.label) n.label.style.opacity = '1'
+  })
+
   for (let d = activeLayer; d <= 2; d++) {
     nodes
       .filter((n) => n.d === d)
@@ -419,6 +435,7 @@ async function finish() {
   const my = token
   nodes.forEach((nn) => {
     const n = nn as LiveNode
+    if (!n.g) return // 防御：未绘制的节点（理论上 instant 已补全）
     if (n.d < 3) {
       ANIM.play(n.g!, [{ opacity: 1 }, { opacity: 0 }], { duration: 420, fill: 'forwards' })
       if (n.label) ANIM.play(n.label, [{ opacity: 1 }, { opacity: 0 }], { duration: 420, fill: 'forwards' })
