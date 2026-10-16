@@ -13,9 +13,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# job 名必须叫 `check`：main 的 ruleset（protect-main）把 required_status_checks
+# 写死成这个 context。改名或拆成多个 job 会让 PR 永远停在 BLOCKED。
 jobs:
-  # 旧单文件站点的规则自检 —— index.html 还在，PR2 移除它时一并删掉这个 job
-  check-legacy:
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -26,52 +27,33 @@ jobs:
         with:
           node-version: 24
 
+      # —— 旧单文件站点（index.html 还在，PR2 移除它时一并删这段）——
       - name: 校验 index.html
         run: node scripts/check-rules.mjs
 
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      # —— 前端 ——
+      - name: 安装前端依赖
+        run: npm ci
         working-directory: frontend
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v5
 
-      - name: 设置 Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: 安装依赖
-        run: npm ci
-
-      - name: 单元测试
+      - name: 前端单元测试
         run: npm run test:run
+        working-directory: frontend
 
-      - name: 构建
+      - name: 前端构建
         run: npm run build
+        working-directory: frontend
 
-  backend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v5
+      - name: 校验产物子路径
+        run: |
+          grep -q '/2026-10-9-Yi/' frontend/dist/index.html \
+            || { echo "错误：dist/index.html 缺少 /2026-10-9-Yi/ —— Vite base 没生效，Pages 子路径会 404"; exit 1; }
 
-      - name: 设置 Node
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-
-      - name: 安装依赖
+      # —— 后端 ——
+      - name: 安装后端依赖
         run: npm ci
+        working-directory: backend
 
-      - name: 冒烟测试
+      - name: 后端冒烟测试
         run: npm test
+        working-directory: backend
