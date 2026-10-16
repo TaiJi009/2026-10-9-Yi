@@ -1,0 +1,17 @@
+/* ==========================================================================
+   脚手架占位样式 —— PR2 将把 index.html 的 <style> 块（L7–292，
+   tone ramp / 六屏布局 / 爻几何）逐字移植到这里。
+   ========================================================================== */
+:root {
+  --t0: #0a0a0a;
+  --w: #f5f5f5;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--t0);
+  color: var(--w);
+  font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  display: grid;
+  place-items: center;
+}

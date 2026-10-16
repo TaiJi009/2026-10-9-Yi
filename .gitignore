@@ -50,3 +50,6 @@ venv/
 *.tmp
 *.bak
 *.log
+
+# 测试覆盖率报告
+coverage/

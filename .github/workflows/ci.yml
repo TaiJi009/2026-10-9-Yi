@@ -13,6 +13,8 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# job 名必须叫 `check`：main 的 ruleset（protect-main）把 required_status_checks
+# 写死成这个 context。改名或拆成多个 job 会让 PR 永远停在 BLOCKED。
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -25,5 +27,33 @@ jobs:
         with:
           node-version: 24
 
+      # —— 旧单文件站点（index.html 还在，PR2 移除它时一并删这段）——
       - name: 校验 index.html
         run: node scripts/check-rules.mjs
+
+      # —— 前端 ——
+      - name: 安装前端依赖
+        run: npm ci
+        working-directory: frontend
+
+      - name: 前端单元测试
+        run: npm run test:run
+        working-directory: frontend
+
+      - name: 前端构建
+        run: npm run build
+        working-directory: frontend
+
+      - name: 校验产物子路径
+        run: |
+          grep -q '/2026-10-9-Yi/' frontend/dist/index.html \
+            || { echo "错误：dist/index.html 缺少 /2026-10-9-Yi/ —— Vite base 没生效，Pages 子路径会 404"; exit 1; }
+
+      # —— 后端 ——
+      - name: 安装后端依赖
+        run: npm ci
+        working-directory: backend
+
+      - name: 后端冒烟测试
+        run: npm test
+        working-directory: backend
