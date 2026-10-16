@@ -4,7 +4,10 @@
 重卦成六十四卦，再逐爻抽出一卦，最后展开这一卦的「错综」关系网——每种变法都在一个
 **展示位**上当场演算给你看。
 
-视觉约束：**仅黑白灰，靠明度多层次区分（tone ramp）**；交互形式：单文件 HTML，零依赖。
+视觉约束：**仅黑白灰，靠明度多层次区分（tone ramp）**。
+
+3.0 起拆为前后端：`frontend/` 是 Vite + React + TypeScript 的六屏应用，
+`backend/` 是 Node + Express 的 API 骨架。业务规则一行没改，只是换了存放的位置。
 
 ## 在线演示
 
@@ -14,8 +17,8 @@ https://taiji009.github.io/2026-10-9-Yi/
 
 ## 当前状态
 
-`index.html` 为 2.0 版：单文件、约 1850 行，内联 CSS + 原生 JS，零依赖。
-六屏全通，规则自检全绿（`node scripts/check-rules.mjs`，CI 每次 PR 都跑）。
+`frontend/` 为 3.0 版：六屏全通，规则断言全绿（`npm run test:run`，CI 每次 PR 都跑）。
+`backend/` 只有 `GET /api/health` —— 是骨架，等卦象数据与用户记录往里长。
 
 ## 六屏流程
 
@@ -43,12 +46,13 @@ https://taiji009.github.io/2026-10-9-Yi/
 **第 2 个子节点的新爻 = 第 1 个的反**（不是再次随机）。这保证了一个不变量：
 **第 d 层恰好 `2^d` 个互不相同的节点**——子节点继承父的下方若干爻，所以父不同则子不同；
 同一父的两个子在新爻处一阴一阳，也不同。于是两仪恒 2、四象恒 4、八卦恒 8，正是「加一倍」。
-`?debug` 里有一条断言专门验证这个不变量。
+`core/__tests__/grow-invariant.test.ts` 有一条断言专门验证这个不变量，
+而且它测的是 `core/grow-model.ts` 里屏 1 真正在用的那份实现（2.0 的页内自检是手抄一遍来测的）。
 
 每次抽爻是「**蓄 → 抽/裂变 → 落/显**」三段（720/560/520ms）。抽完即解锁，第 3 段作为尾巴
-与下一次点击并行——所以感知间隔约 1.1 秒，不是 1.8 秒。嫌慢/嫌快只改 `DATA.DUR` 的三个常量。
+与下一次点击并行——所以感知间隔约 1.1 秒，不是 1.8 秒。嫌慢/嫌快只改 `core/data.ts` 里 `DUR` 的三个常量。
 
-尺寸按 `DATA.GROW` 公式预算，不测量：`x(col,d) = (col+.5)/2^d * W`、`y(d) = Y0 - d*RH`。
+尺寸按 `core/data.ts` 的 `GROW` 公式预算，不测量：`x(col,d) = (col+.5)/2^d * W`、`y(d) = Y0 - d*RH`。
 宽度校验：`8×84 + 7×41 = 959 ≤ 1000`，留 20px 余量（**再加到 96 就会溢出**）。
 
 ## 屏 2：六十四卦方阵
@@ -151,44 +155,65 @@ https://taiji009.github.io/2026-10-9-Yi/
 
 ## 自检
 
-打开 `index.html?debug`，控制台会跑 24 条断言：卦名表、先天生成序、`bitsToTrigram`/`bitsToSixiang`、
-15 格系统、综/错/互抽查、**生演不变量**（每层恰好 2^d 个互不相同的节点）、
-16 万次采样验证大衍概率。
+规则断言在 `frontend/src/core/__tests__/`，跑 `cd frontend && npm run test:run`：
+卦名表、先天生成序、`bitsToTrigram`/`bitsToSixiang`、15 格系统、综/错/互抽查、
+**生演不变量**（每层恰好 2^d 个互不相同的节点）、16 万次采样验证大衍概率。
 
-同一条命令也能在命令行跑，CI 用的就是它：
+2.0 的做法是把页内 `?debug` 那段源码从 `index.html` 里**文本抽取**出来在命令行执行，
+靠 `const DATA = ` 这类字符串标记定位模块边界——标记一动，抽取就静默失效。
+3.0 这条耦合没了，而「页面与 CI 跑同一份断言」这个性质反而更强：
+两边 `import` 的是同一个 `core/` 模块，断言与实现之间不存在第二份拷贝。
 
-```bash
-node scripts/check-rules.mjs
-```
+纯逻辑测试跑在 `environment: 'node'` 下，不需要 jsdom —— `core/` 里就没有 DOM。
 
-它不另抄一份断言，而是**从 `index.html` 里把 `?debug` 那段源码抽出来直接执行**，
-外加结构冒烟（doctype / 标签配对 / 零外部依赖 / 无绝对路径资源）。
-所以页面里跑什么，CI 就跑什么——改了一边另一边不可能漏。
-
-也可以在控制台直接用 `window.YI` 里的
-`DATA / RULES / STORE / RENDER / ANIM / GROW / STAGE / FSM / PLAYS` 调试：
+开发模式下控制台有 `window.YI` 可用（生产构建里没有）：
 
 ```js
 YI.RULES.bitsToName([1,1,1,1,1,1])             // "乾为天"
 YI.RULES.buildVariants([1,0,1,0,1,0]).length   // 15
 YI.RULES.generationOrder().map(t=>t.name).join('')  // "乾兑离震巽坎艮坤"
-YI.GROW.counts                                  // 生演各层已生成数
-YI.STAGE.SHOW.bits                              // 展示位当前显示哪一卦
+YI.STAGE.SHOW.bits                             // 展示位当前显示哪一卦
+YI.goto('matrix')                              // 直接跳屏
 ```
 
 ## 代码结构
 
-`index.html` 内部按命名空间分区，依赖严格单向：
+2.0 的命名空间阶梯，到 3.0 换成文件目录，依赖方向不变：
 
 ```
 DATA → RULES → STORE → RENDER → ANIM → GROW / STAGE → FSM → EVENTS → BOOT
+  ↓       ↓       ↓        ↓        ↓         ↓          ↓       ↓       ↓
+core/  core/  state/   anim/    anim/     grow/       App.tsx  组件   main.tsx
+data   rules  store   yao-dom   anim     stage                 内事件
 ```
 
-- `RULES` 绝不碰 DOM；`RENDER` 绝不写 state；`ANIM` 不认识业务语义，只认 `el` + keyframes。
-- `GROW`（屏 1 生演）与 `STAGE`（屏 5 错综）是两个状态控制器，只依赖 `RULES/RENDER/ANIM`，不碰 `STORE`。
-- 动画主干用 WAAPI（`element.animate`）；`ANIM` 里有一个全局注册表 + `epoch` token——
-  **切屏**时 `cancelAll()` 让所有在飞的 `await` 自动失效，这是跨屏串扰的解药
-  （但屏 5 内部连点走的是另一套，见上）。
+| 目录 | 装什么 | 规矩 |
+|---|---|---|
+| `core/` | 纯数据 + 纯函数 + 生演节点模型 | 不 import 任何有 DOM 的东西，测试直接跑 |
+| `anim/` | `anim.ts`（WAAPI 注册表 + epoch）、`yao-dom.ts`（命令式爻栈/SVG 构造） | 不认识业务语义，只认 `el` + keyframes |
+| `state/store.ts` | 单一状态（values/bits/moves/variants） | 写它的是控制器，不是 React |
+| `grow/` `stage/` | 屏 1、屏 5 的状态控制器 | 只依赖 `core/anim`，操作 ref 递进来的容器 |
+| `plays/` | 屏 2/3/4 的编排函数 | 同样接收 refs，不 `document.querySelector` |
+| `screens/` `components/` | React 骨架与静态件 | **永不重渲染控制器写的容器** |
+
+### 为什么不是「全都 React 化」
+
+这条是整个 3.0 最重要的取舍，值得写下来：
+
+**React 管结构，WAAPI 管像素。**
+
+爻的翻转是 `scaleX` 的 morph + `fill:'forwards'`，节点生长是一串 `await` 之间的
+`dataset` 改写。把这些交给 React，等于让 reconciler 和动画引擎同时争抢同一个
+`style`/`class`——结果是动画被下一次 render 抹平。所以动画子树由控制器
+`createElementNS` 建好、append 进 `ref` 指向的空 `<g>` / 空 `<div>`，React 从不碰它们。
+
+屏的切换同理：六屏**全部常驻挂载**，只切 `.active` 类（见 `App.tsx`）。
+按惯例 React 会把非当前屏卸载掉，但那会杀死 CSS 的 0.42s 淡入和所有 `fill:forwards` 的终态。
+
+### 保留的两条硬约束
+
+见上文「两个必须知道的架构决定」——两框等几何、屏 5 连点不用 `cancelAll()`。
+这两条在 3.0 的代码里原样成立，`stage/stage.ts` 顶部注释也各写了一份。
 
 ## 视觉约定
 
@@ -211,41 +236,66 @@ DATA → RULES → STORE → RENDER → ANIM → GROW / STAGE → FSM → EVENTS
 
 系统开启「减弱动态效果」时，所有时长乘以 0.15 并关掉抖动层——保留叙事，但不刺激。
 
-## 目录结构（迁移中）
-
-线上站点仍是下面这个单文件 `index.html`（由 `deploy.yml` 发布），本次新增的两个目录
-是前后端分离的脚手架，**尚未接管站点**：
+## 目录结构
 
 ```
 2026-10-9-Yi/
-├── index.html          # 现行站点：单文件原型（仍是 Pages 上跑的东西）
-├── frontend/           # Vite + React + TypeScript —— 六屏重写在此进行（下一步）
-├── backend/            # Node.js + Express —— API 骨架，当前只有 /api/health
-└── scripts/            # check-rules.mjs：旧单文件规则自检（重写完成后删除）
+├── frontend/           # Vite + React + TS —— 站点的全部（六屏应用）
+│   ├── vite.config.ts  # base 子路径 + /api 代理 + vitest 配置
+│   └── src/            # core / anim / state / grow / stage / plays / screens
+├── backend/            # Node + Express —— API 骨架，当前只有 /api/health
+│   └── src/            # app.js 工厂 + routes/ + middleware/
+└── .github/workflows/  # ci.yml（校验）+ deploy.yml（Pages 部署）
 ```
+
+`frontend/` 与 `backend/` 各自带 `package.json` 与 lockfile，是两个完全独立的项目。
 
 ## 开发环境
 
-前端：无构建、无依赖。直接用浏览器打开 `index.html` 即可，或起一个静态服务：
-
-```bash
-python3 -m http.server 8777
-```
-
-脚手架（frontend/ 与 backend/）需要 Node 24，各自独立安装依赖：
+需要 Node 24（CI 用的就是它）。两个服务各开一个终端：
 
 ```bash
 cd frontend && npm ci && npm run dev   # http://localhost:5173/2026-10-9-Yi/
 cd backend  && npm ci && npm run dev   # http://localhost:8787/api/health
 ```
 
-`frontend/vite.config.ts` 已把 `/api` 代理到本机后端，两个服务同时开着即可联调。
+`vite.config.ts` 已把 `/api` 代理到 8787，两个都开着即可联调，前端代码里不用写域名。
+注意开发地址带 `/2026-10-9-Yi/` 这一段——这是故意的：让 dev / preview / 线上三者路径一致。
+
+本地部署等价检查（不推 main 就能验证 Pages 上的产物）：
+
+```bash
+cd frontend && npm run build && npm run preview
+# 打开 http://localhost:4173/2026-10-9-Yi/
+```
+
+测试：
+
+```bash
+cd frontend && npm run test:run   # 规则断言 + 生演不变量 + 大衍统计
+cd backend  && npm test           # 健康检查 + CORS + JSON 404
+```
+
+`frontend/` 里已带 `oxlint`（`npm run lint`，模板默认），尚未接入 CI。
+
+## 后端
+
+只有 `GET /api/health`，其余是给它留的**最终形态**结构，不是半成品占位：
+`src/app.js` 导出 `createApp()` 工厂、`src/server.js` 只做 `listen()`（测试因此能起
+随机端口打真实 HTTP）；`src/routes/index.js` 里标好了将来挂卦象数据与用户记录的位置。
+环境变量走 Node 内置的 `--env-file-if-exists`，抄 `backend/.env.example` 即可。
+
+CORS 允许清单来自 `CORS_ORIGINS`，默认放行 Vite 5173 与 Pages 域——
+**前端目前不调用 API**（Pages 上会 404），这条是为将来的功能留的。
 
 ## 部署
 
-推送到 `main` 分支时，GitHub Actions 自动把 `index.html` 发布到 GitHub Pages
-（工作流：`.github/workflows/deploy.yml`）。该工作流**只发布 `index.html`**，
-`docs/`、`README.md`、`.claude/` 都不会进入站点。
+推送到 `main` 时，GitHub Actions 构建 `frontend/dist` 并发布到 GitHub Pages
+（工作流：`.github/workflows/deploy.yml`，触发路径为 `frontend/**`）。
+`docs/`、`README.md`、`.claude/`、`backend/` 都不会进入站点。
+
+产物校验里有一道**子路径哨兵**：`dist/index.html` 必须含 `/2026-10-9-Yi/`，
+否则红。少了它 Pages 上是一片白屏，在 CI 炸比在线上炸便宜得多。
 
 首次启用需一次性配置：仓库 **Settings → Pages → Source** 选 **GitHub Actions**
 （不要选 "Deploy from a branch"，否则部署会以 `Get Pages site failed` 失败）。
@@ -259,7 +309,7 @@ cd backend  && npm ci && npm run dev   # http://localhost:8787/api/health
 1. 开分支：`git switch -c claude/<主题>`
 2. 改完提交、推送：`git push -u origin claude/<主题>`
 3. 开 PR：`gh pr create --base main`
-4. 等「校验」工作流变绿（`.github/workflows/ci.yml`，跑 `scripts/check-rules.mjs`）
+4. 等「校验」工作流变绿（`.github/workflows/ci.yml`：前端断言 + 构建 + 后端冒烟测试）
 5. 合并（建议 **Squash and merge**，把分支上的多个提交压成一个进 `main`）
 
 合并进 `main` 后，部署工作流才会触发，Pages 随之更新——PR 期间线上保持旧版。
