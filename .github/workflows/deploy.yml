@@ -45,14 +45,21 @@ jobs:
       - name: 校验站点产物
         run: |
           f=frontend/dist/index.html
+          # 校验对象是「整份产物」而不是单文件：Vite 的 index.html 只有
+          # 引导标签（约 400 字节），体积在分离的 assets 里。2.0 时代
+          # 「index.html > 1KB」的判据照搬过来会把每次部署都误杀。
           test -f "$f" || { echo "错误：$f 不存在"; exit 1; }
-          size=$(wc -c < "$f")
-          echo "index.html 大小：${size} 字节"
-          test "$size" -gt 1024 || { echo "错误：文件过小，构建可能出错"; exit 1; }
           grep -q '</html>' "$f" || { echo "错误：缺少 </html>，文件可能被截断"; exit 1; }
           # 子路径哨兵：Vite base 丢了就会白屏，宁可这里红也不要线上炸
           grep -q '/2026-10-9-Yi/' "$f" || { echo "错误：产物里没有 /2026-10-9-Yi/ —— vite.config.ts 的 base 没生效"; exit 1; }
-          ls -la frontend/dist
+          # 入口脚本与样式必须真实存在且非空
+          js=$(find frontend/dist/assets -name '*.js' -size +10k -print -quit)
+          test -n "$js" || { echo "错误：assets 里没有大于 10KB 的 js —— 构建可能失败"; exit 1; }
+          css=$(find frontend/dist/assets -name '*.css' -size +1k -print -quit)
+          test -n "$css" || { echo "错误：assets 里没有大于 1KB 的 css"; exit 1; }
+          echo "入口：${js}（$(wc -c < "$js") 字节）· 样式：${css}"
+          du -sh frontend/dist
+          ls -la frontend/dist frontend/dist/assets
 
       - name: 设置 Pages
         uses: actions/configure-pages@v6
