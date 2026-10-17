@@ -76,6 +76,7 @@ async function clearShow(my: number) {
   await ANIM.sleep(DUR.clearShow)
   if (my !== S.seq) return
   showStack.style.opacity = ''
+  showName.style.opacity = '' // commit() 用内联提交了终态，这里必须一并撤掉
   showName.textContent = ''
   showSym.textContent = ''
   S.bits = null
@@ -262,7 +263,7 @@ function commit(bits: Bits, name: string, cap: string) {
   showStack.style.opacity = ''
   showSym.textContent = trigramSyms(bits)
   showName.textContent = name
-  ANIM.play(showName, [{ opacity: 0 }, { opacity: 1 }], { duration: 320, fill: 'none' })
+  void ANIM.reveal(showName, [{ opacity: 0 }, { opacity: 1 }], { duration: 320 })
   showCap.textContent = cap
   S.bits = bits.slice()
   S.name = name
@@ -375,7 +376,7 @@ function init(epoch: number, refs: StageRefs) {
   benStack.dataset.phase = 'settled'
   benSym.textContent = trigramSyms(ben)
   benName.textContent = RULES.bitsToName(ben)
-  ANIM.play(benName, [{ opacity: 0 }, { opacity: 1 }], { duration: 420, fill: 'none' })
+  void ANIM.reveal(benName, [{ opacity: 0 }, { opacity: 1 }], { duration: 420 })
 
   // 展示位：先摆 6 个空槽（互卦演化要用），默认态由下面的 hasMove 分支决定
   fillStack(showStack, [0, 0, 0, 0, 0, 0], {})
@@ -396,8 +397,8 @@ function init(epoch: number, refs: StageRefs) {
     showCap.textContent = '之卦'
     showStack.style.opacity = '0'
     showName.style.opacity = '0'
-    ANIM.play(showStack, [{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 200, fill: 'none' })
-    ANIM.play(showName, [{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 260, fill: 'none' })
+    void ANIM.reveal(showStack, [{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 200 })
+    void ANIM.reveal(showName, [{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 260 })
   } else {
     S.bits = null
     S.state = 'idle'

@@ -96,22 +96,12 @@ export async function playSettle(refs: SettleRefs, _deps: SettleDeps) {
 
   await ANIM.sleep(140)
   if (!ANIM.alive(epoch)) return
-  ANIM.play(
-    A.nm,
-    [
-      { opacity: 0, transform: 'translateY(10px)' },
-      { opacity: 1, transform: 'translateY(0)' },
-    ],
-    { duration: 520, fill: 'none' },
-  )
-  if (B)
-    ANIM.play(
-      B.nm,
-      [
-        { opacity: 0, transform: 'translateY(10px)' },
-        { opacity: 1, transform: 'translateY(0)' },
-      ],
-      { duration: 520, delay: 120, fill: 'none' },
-    )
-  ANIM.play(sub, [{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 220, fill: 'none' })
+  // 卦名与说明的基态是 opacity:0，入场必须提交终态，否则跑完又看不见（reveal 说明见 anim.ts）
+  const rise: Keyframe[] = [
+    { opacity: 0, transform: 'translateY(10px)' },
+    { opacity: 1, transform: 'translateY(0)' },
+  ]
+  void ANIM.reveal(A.nm, rise, { duration: 520 })
+  if (B) void ANIM.reveal(B.nm, rise, { duration: 520, delay: 120 })
+  void ANIM.reveal(sub, [{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 220 })
 }
