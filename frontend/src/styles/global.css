@@ -1,10 +1,20 @@
 /* ==========================================================================
    TOKENS —— 明度阶梯（tone ramp）与节奏常量
-   全站仅用黑白灰，靠明度分层承载语义。
+   黑白灰承载语义层级（动爻恒为最亮档），紫罗兰只承载交互状态
+   （焦点 / 选中 / 推进按钮 / 站点图标）。语义层不得改用紫色，交互层不得改用白。
    ========================================================================== */
 :root{
   --t0:#06060a; --t1:#0c0c11; --t2:#15151b; --t3:#212128; --t4:#32323b;
   --t5:#4a4a55; --t6:#6c6c78; --t7:#9898a6; --t8:#c8c8d4; --t9:#ececf3; --w:#fff;
+
+  /* 交互色（取自 docs/Yi-prototype/六十四卦.html）：只做状态，不做层级。
+     对比度实测于 --t0 底：accent 10.0:1 / accent-ink 13.1:1 / accent-dim 6.0:1。
+     三者都低于纯白 --ink-max 的 20.2:1 —— 动爻仍是最亮档，层级没被动过。 */
+  --accent:#c9a6ff;      /* 焦点环、选中框、推进按钮 */
+  --accent-ink:#d8c9f2;  /* 卦名（薰衣草灰紫） */
+  --accent-dim:#8f89a3;  /* 说明性副文字 */
+  --glass:#141419a6;     /* HUD 浮层底 */
+  --glass-line:#ffffff1f;/* HUD 浮层描边 */
 
   --ink:#8f8f9c;        /* 静爻 */
   --ink-hi:#e8e8ef;     /* 落定爻 */
@@ -28,8 +38,8 @@ body{
 body::before{
   content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:
-    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    linear-gradient(rgba(201,166,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,166,255,.018) 1px, transparent 1px);
   background-size:64px 64px, 64px 64px;
   -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 18%, transparent 76%);
   mask-image:radial-gradient(circle at 50% 50%, #000 18%, transparent 76%);
@@ -122,6 +132,8 @@ body::after{
 }
 @keyframes haloBreathe{0%,100%{opacity:.55}50%{opacity:1}}
 .taiji svg{width:100%;height:100%;display:block;border-radius:50%}
+/* 键盘焦点：原本 outline:none 且没有替代态，这里补上（交互态归紫） */
+.taiji:focus-visible{outline:2px solid var(--accent);outline-offset:12px;border-radius:50%}
 
 /* ==========================================================================
    SCREEN 1 —— 生演（点击驱动的抽卡生长）
@@ -136,9 +148,9 @@ body::after{
 .gen-ghost{fill:none;stroke:var(--t4);stroke-width:1.5;stroke-dasharray:5 6;opacity:0;pointer-events:none}
 .gen-hit{fill:transparent;stroke:none}
 .gen-node[data-clickable="1"]{cursor:pointer}
-.gen-node[data-clickable="1"]:hover{filter:drop-shadow(0 0 12px rgba(255,255,255,.5))}
+.gen-node[data-clickable="1"]:hover{filter:drop-shadow(0 0 12px rgba(201,166,255,.5))}
 .gen-node:focus{outline:none}
-.gen-node:focus-visible .gen-hit{stroke:var(--t7);stroke-width:1.5;stroke-dasharray:4 3}
+.gen-node:focus-visible .gen-hit{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:4 3}
 .gen-label{fill:var(--t7);font-family:var(--font-cn);font-size:18px;text-anchor:middle}
 .gen-label.dim{fill:var(--t5);font-size:15px;text-anchor:start}
 
@@ -179,7 +191,7 @@ body::after{
   transform:skewX(-18deg);
 }
 .hex-name{
-  font-family:var(--font-cn);font-size:24px;letter-spacing:.26em;color:var(--t9);
+  font-family:var(--font-cn);font-size:24px;letter-spacing:.26em;color:var(--accent-ink);
   white-space:nowrap;opacity:0;
 }
 .hex-sub{font-size:12px;letter-spacing:.34em;color:var(--t6);opacity:0;text-align:center}
@@ -190,15 +202,24 @@ body::after{
    由此 dx/dy、交卦错身量、互卦的源爻↔目标爻映射全是常数，无需逐帧测量。
    ========================================================================== */
 #network{flex-direction:column;gap:18px}
-.net-toolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center}
+/* 玻璃语言（原型 .hint/.pager/.zoomer）：半透明底 + blur + 1px 白细边 + 胶囊圆角 */
+.net-toolbar{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;
+  background:var(--glass);border:1px solid var(--glass-line);border-radius:999px;
+  padding:8px 18px;
+  backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);
+  box-shadow:0 4px 18px #0000005c;
+}
 .net-title{font-family:var(--font-cn);font-size:15px;letter-spacing:.3em;color:var(--t7)}
 .net-btn{
   font-family:var(--font-ui);font-size:12px;letter-spacing:.2em;
   color:var(--t8);background:transparent;border:1px solid var(--t4);
-  padding:7px 15px;border-radius:2px;cursor:pointer;
+  padding:7px 15px;border-radius:999px;cursor:pointer;
   transition:border-color .25s,color .25s,background .25s;
 }
-.net-btn:hover{color:var(--w);border-color:var(--t7);background:rgba(255,255,255,.045)}
+.net-btn:hover{color:var(--accent);border-color:var(--accent);background:rgba(201,166,255,.075)}
+/* 重新起卦前置一枚乾符作语义点缀；纯装饰，读屏不依赖它 */
+#restart::before{content:"\2630";color:var(--accent);margin-right:.7em;font-family:var(--font-cn)}
 
 .net-board{display:flex;gap:24px;align-items:flex-start;justify-content:center;width:100%}
 .board-col{display:flex;flex-direction:column;gap:14px;flex:0 0 auto}
@@ -217,6 +238,12 @@ body::after{
   --yw:158px; --yh:14px; --ygap:12px;
 }
 .f-cap{font-size:10.5px;letter-spacing:.34em;color:var(--t6)}
+/* 展示位卦符（上卦+下卦两个经卦符号）。由 STAGE 命令式写入。
+   固定 height + min-width 并预留占位：内容变化不得推动两框（两框等几何是硬约束）。 */
+.show-sym{
+  font-family:var(--font-cn);font-size:20px;letter-spacing:.16em;line-height:1;
+  color:var(--accent);height:20px;min-width:44px;text-align:center;
+}
 .frame .hex-name{font-size:22px}
 
 /* 在飞的复制体：覆盖在本卦框上，z 高于两框 */
@@ -230,16 +257,21 @@ body::after{
   font-family:var(--font-ui);color:inherit;cursor:pointer;
   transition:border-color .22s,background .22s,transform .22s var(--ease-settle);
 }
-.card:hover,.card:focus-visible{
-  border-color:var(--t7);background:rgba(24,24,30,.95);outline:none;
+.card:hover{
+  border-color:var(--t7);background:rgba(24,24,30,.95);
   transform:translateY(-2px);z-index:6;
 }
-.card[data-active="1"]{border-color:var(--w);background:rgba(32,32,40,.96)}
+/* 焦点单列：紫实环 + 3px 偏移（原型 .card:focus-visible），与 hover 可分辨 */
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.card[data-active="1"]{
+  border-color:var(--accent);background:rgba(32,32,40,.96);
+  box-shadow:0 0 14px rgba(201,166,255,.22);
+}
 .card .mini{display:flex;flex-direction:column-reverse;gap:3.5px;width:68px}
 .card .mini .yao{height:4.5px;width:68px}
 .card .mini .seg{background:var(--t7);border-radius:.5px}
 .card .c-label{font-size:10px;letter-spacing:.18em;color:var(--t6)}
-.card .c-name{font-family:var(--font-cn);font-size:13.5px;letter-spacing:.1em;color:var(--t8)}
+.card .c-name{font-family:var(--font-cn);font-size:13.5px;letter-spacing:.1em;color:var(--accent-ink)}
 .card .c-badge{
   visibility:hidden;font-size:9.5px;letter-spacing:.12em;color:var(--t6);
   border:1px solid var(--t4);border-radius:2px;padding:1px 5px;
@@ -249,7 +281,7 @@ body::after{
 /* 互卦抽取括号（沿用 1.0） */
 .bracket{
   position:absolute;width:9px;opacity:0;top:0;height:0;
-  border:1px solid rgba(255,255,255,.6);transition:opacity .22s;
+  border:1px solid rgba(201,166,255,.6);transition:opacity .22s;
 }
 .bracket.l{left:-17px;border-right:none}
 .bracket.r{right:-17px;border-left:none}
@@ -260,13 +292,21 @@ body::after{
    ========================================================================== */
 #skip{
   position:fixed;right:24px;bottom:24px;z-index:9;
-  font-family:var(--font-ui);font-size:11.5px;letter-spacing:.28em;
-  color:var(--t6);background:transparent;border:1px solid var(--t3);
-  padding:8px 16px;border-radius:2px;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-ui);font-size:12px;letter-spacing:.28em;
+  color:var(--accent-ink);background:var(--glass);border:1px solid var(--glass-line);
+  padding:8px 16px;border-radius:999px;cursor:pointer;
+  backdrop-filter:blur(10px) saturate(1.2);-webkit-backdrop-filter:blur(10px) saturate(1.2);
+  box-shadow:0 4px 18px #0000005c;
   opacity:0;pointer-events:none;transition:opacity .3s,color .25s,border-color .25s;
 }
 #skip.on{opacity:1;pointer-events:auto}
-#skip:hover{color:var(--w);border-color:var(--t7)}
+#skip:hover{color:var(--accent);border-color:var(--accent)}
+/* 键帽（原型 .tip kbd）：把「可按 Esc」显式告诉用户 */
+#skip kbd{
+  font-family:var(--font-ui);font-size:10.5px;letter-spacing:.04em;color:var(--t9);
+  background:#ffffff17;border:1px solid #ffffff26;border-radius:5px;padding:1px 6px;
+}
 
 @media (prefers-reduced-motion: reduce){
   .taiji{animation:none}
@@ -275,7 +315,15 @@ body::after{
 
 @media (max-width: 980px){
   /* 竖排后内容会高于视口，本屏需要能滚 */
-  #network{justify-content:flex-start;overflow-y:auto}
+  #network{
+    justify-content:flex-start;overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:#5c5c68 transparent;
+  }
+  #network::-webkit-scrollbar{width:10px}
+  #network::-webkit-scrollbar-track{background:transparent}
+  #network::-webkit-scrollbar-thumb{
+    background:#5c5c68;border-radius:8px;border:3px solid transparent;background-clip:content-box;
+  }
   .net-board{flex-direction:column;align-items:center}
   .board-col{flex-direction:row;flex-wrap:wrap;justify-content:center}
   .board-pair{gap:20px}
