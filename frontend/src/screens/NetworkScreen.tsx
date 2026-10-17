@@ -36,6 +36,8 @@ export default function NetworkScreen({ active, ben, onRestart }: Props) {
   const showCapRef = useRef<HTMLDivElement>(null)
   const brLRef = useRef<HTMLDivElement>(null)
   const brRRef = useRef<HTMLDivElement>(null)
+  const benSymRef = useRef<HTMLDivElement>(null)
+  const showSymRef = useRef<HTMLDivElement>(null)
 
   // 15 格 + 重合检测（纯函数）：ben 变了才重算。
   // ★ 六屏常驻挂载 ⇒ 未起卦时 ben 是空数组，此时不能出卡：
@@ -68,6 +70,8 @@ export default function NetworkScreen({ active, ben, onRestart }: Props) {
       showCap: showCapRef.current!,
       brL: brLRef.current!,
       brR: brRRef.current!,
+      benSym: benSymRef.current!,
+      showSym: showSymRef.current!,
     })
   }, [active])
 
@@ -102,9 +106,12 @@ export default function NetworkScreen({ active, ben, onRestart }: Props) {
             ))}
           </div>
           <div className="board-pair" id="board-pair">
+            {/* 两框结构必须逐项对称（含 .show-sym）：单侧加元素会让两框
+                高度不等，屏 5 的 dx/dy 常数前提就废了 */}
             <div className="frame">
               <div className="stack f-stack" id="ben-stack" ref={benStackRef} />
               <div className="hex-name" id="ben-name" ref={benNameRef} />
+              <div className="show-sym" id="ben-sym" ref={benSymRef} aria-hidden="true" />
               <div className="f-cap">本卦</div>
               <div className="bracket l" id="br-l" ref={brLRef} />
               <div className="bracket r" id="br-r" ref={brRRef} />
@@ -112,6 +119,7 @@ export default function NetworkScreen({ active, ben, onRestart }: Props) {
             <div className="frame">
               <div className="stack f-stack" id="show-stack" ref={showStackRef} />
               <div className="hex-name" id="show-name" ref={showNameRef} />
+              <div className="show-sym" id="show-sym" ref={showSymRef} aria-hidden="true" />
               <div className="f-cap" id="show-cap" ref={showCapRef}>
                 之卦
               </div>

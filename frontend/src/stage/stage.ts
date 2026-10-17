@@ -33,6 +33,7 @@ const S = {
 let ben: Bits = [],
   moves: boolean[] = []
 let benStack: HTMLElement, showStack: HTMLElement, benName: HTMLElement, showName: HTMLElement
+let benSym: HTMLElement, showSym: HTMLElement
 let showCap: HTMLElement, brL: HTMLElement, brR: HTMLElement
 let DX = 0,
   DY = 0,
@@ -76,6 +77,7 @@ async function clearShow(my: number) {
   if (my !== S.seq) return
   showStack.style.opacity = ''
   showName.textContent = ''
+  showSym.textContent = ''
   S.bits = null
   S.state = 'idle'
 }
@@ -250,9 +252,15 @@ async function mutualBurst(v: Variant, my: number) {
   return my === S.seq
 }
 
+// 「上卦+下卦」两枚经卦符号。★ 顺序按视觉自上而下，与 bits 的 index 0=初爻=最下相反
+function trigramSyms(bits: Bits) {
+  return RULES.upperTri(bits).sym + RULES.lowerTri(bits).sym
+}
+
 function commit(bits: Bits, name: string, cap: string) {
   fillStack(showStack, bits, {})
   showStack.style.opacity = ''
+  showSym.textContent = trigramSyms(bits)
   showName.textContent = name
   ANIM.play(showName, [{ opacity: 0 }, { opacity: 1 }], { duration: 320, fill: 'none' })
   showCap.textContent = cap
@@ -341,6 +349,8 @@ export interface StageRefs {
   showCap: HTMLElement
   brL: HTMLElement
   brR: HTMLElement
+  benSym: HTMLElement
+  showSym: HTMLElement
 }
 
 function init(epoch: number, refs: StageRefs) {
@@ -351,6 +361,8 @@ function init(epoch: number, refs: StageRefs) {
   moves = st.moves.slice()
 
   benStack = refs.benStack
+  benSym = refs.benSym
+  showSym = refs.showSym
   showStack = refs.showStack
   benName = refs.benName
   showName = refs.showName
@@ -361,6 +373,7 @@ function init(epoch: number, refs: StageRefs) {
   // 本卦框
   fillStack(benStack, ben, { moves })
   benStack.dataset.phase = 'settled'
+  benSym.textContent = trigramSyms(ben)
   benName.textContent = RULES.bitsToName(ben)
   ANIM.play(benName, [{ opacity: 0 }, { opacity: 1 }], { duration: 420, fill: 'none' })
 
@@ -375,6 +388,7 @@ function init(epoch: number, refs: StageRefs) {
     const zb = RULES.zhiBits(ben, moves)
     S.bits = zb.slice()
     S.name = RULES.bitsToName(zb)
+    showSym.textContent = trigramSyms(zb)
     S.cap = '之卦'
     S.state = 'shown'
     fillStack(showStack, zb, {})
@@ -387,6 +401,7 @@ function init(epoch: number, refs: StageRefs) {
   } else {
     S.bits = null
     S.state = 'idle'
+    showSym.textContent = ''
     showName.textContent = ''
     showCap.textContent = '无动爻'
   }

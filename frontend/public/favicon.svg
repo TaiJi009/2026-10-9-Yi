@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-100 -100 200 200" role="img" aria-label="演易 · 太极">
+  <defs><clipPath id="t"><circle cx="0" cy="0" r="100"/></clipPath></defs>
+  <circle cx="0" cy="0" r="100" fill="#06060a"/>
+  <g clip-path="url(#t)">
+    <circle cx="0" cy="0" r="100" fill="#0b0b0f"/>
+    <path d="M0,-100 A100,100 0 0 1 0,100 Z" fill="#c9a6ff"/>
+    <circle cx="0" cy="-50" r="50" fill="#0b0b0f"/>
+    <circle cx="0" cy="50" r="50" fill="#c9a6ff"/>
+    <circle cx="0" cy="-50" r="22" fill="#c9a6ff"/>
+    <circle cx="0" cy="50" r="22" fill="#0b0b0f"/>
+  </g>
+</svg>

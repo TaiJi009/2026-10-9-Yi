@@ -192,7 +192,7 @@ export default function App() {
         className={screen === 'generate' ? 'on' : ''}
         onClick={skip}
       >
-        跳过
+        跳过 <kbd>Esc</kbd>
       </button>
     </>
   )
