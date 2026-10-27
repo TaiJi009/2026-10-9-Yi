@@ -29,11 +29,24 @@ cd frontend && npm run build                # tsc -b && vite build
 - 需要联调后端时：`cd backend && npm run dev` → http://localhost:8787/api/health（前端当前不调 API）。
 - 部署等价检查：`npm run build && npm run preview` → http://localhost:4173/2026-10-9-Yi/。
 
+### 预检（doctor 式，一条命令回答「这个实例值得驱动吗」）
+
+```bash
+curl -sf http://localhost:5173/2026-10-9-Yi/ >/dev/null && echo "dev 可达" \
+  || echo "dev 未起或子路径错误"; ls frontend/node_modules >/dev/null 2>&1 && echo "依赖已装" \
+  || echo "依赖未装，先 npm ci"
+```
+
+- 基线前置条件（无残留模态、默认首屏、端口无冲突）见 `docs/agents/feature-map.md`；
+  **某前置不可满足时跳过对应验证项，并在报告的「未覆盖项」里写明——不许静默跳过**。
+
 ## 3. 像用户一样操作
 
 - 用浏览器自动化（CDP / Playwright / harness 的 browser 工具）打开 dev 地址。
-- 每一步等待 `section[data-screen="…"]` 的切换（六屏清单与到达路径见 feature map 总表），
-  **禁止固定 sleep**。
+- **驱动前先读 `docs/agents/features/<对应屏>.md`**（每屏的行为清单、选择器、已知坑都在那里），
+  横跨多屏的旅程读 `cross-cutting-flows.md`。
+- 驱动规范（选择器优先级、轮询终态、键盘优先于坐标点击、console 全程监听）以
+  feature map 的「驱动规范」节为准；**等待策略：等 `[data-screen]` 变化 / 元素出现，禁止固定 sleep**。
 - 黄金路径：单击太极 → 屏 1 连点 14 次（或 `Esc` 跳过）→ 屏 2「继续 · 起卦」→ 屏 3 走完或
   `Esc` → 屏 4「展开错综 · 十五卦」→ 屏 5 点击任一卦卡确认展示位演算有反馈。
 - 键盘路径抽查：屏 0 用 `Enter` 起卦；屏 1 用 `Tab` 聚焦 + `Enter` 触发一次。

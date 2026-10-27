@@ -22,9 +22,18 @@
 - CI 的 job 名必须叫 `check`（main 的 ruleset 写死 required context，改名 PR 永远 BLOCKED）。
 - **main 禁止直接 push**：开 `claude/<主题>` 分支 → `gh pr create --base main` → 等「校验」绿 → Squash。
 - `core/` 禁止 import 任何 DOM / 浏览器 API；依赖方向
-  `core → state → anim → grow|stage|plays → screens → App.tsx`（CI 哨兵）。
+  `core → state → anim → grow|stage|plays → screens → App.tsx`（CI 哨兵全链路检查）。
 - 本文件 ≤120 行、AGENTS.md 必须是指向本文件的符号链接（CI 哨兵）。
 - `docs/` 默认不入库，唯 `docs/agents/` 例外（agent 工程资产必须随仓库走）。
+
+## 目录约定（架构五规则，改结构前先读）
+
+1. **常规路径必须比捷径少做决定**：名词唯一——屏（`screens/`）、控制器（`grow|stage/`）、
+   编排（`plays/`）、动画原语（`anim/`）各有唯一创建方式；照抄现有模式即正确做法。
+2. **禁止的依赖必须机械失败**：违反依赖方向由 CI 哨兵拦截，报错信息写明该改哪里。
+3. **每个持久值只有一个写者**：STORE 只由控制器写、React 只读；动画像素只由控制器造。
+4. **新功能加新文件，不在共享根上开分支**：新屏 = `screens/` 新文件 + `App.tsx` 一处注册。
+5. **例外必须狭窄、显式、按架构变更评审**：Ban list 的豁免在 PR 里说明理由，不留口头特例。
 
 ## Ban list（agent 惯犯模式；暂为软约束，随真实失败逐条迁 CI）
 

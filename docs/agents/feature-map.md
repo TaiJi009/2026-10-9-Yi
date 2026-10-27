@@ -1,45 +1,44 @@
 # Feature Map — 变易（六十四卦互动站点）
 
-> 作用：让零上下文的 agent 不再满 UI 乱撞——听到「屏 3 卡了」就知道去哪、点什么、查哪个文件。
-> 维护规则：凡改动功能入口 / 快捷键 / DOM 结构 / `data-screen` 的 PR，必须同步更新本文件。
-> 验收标准：给 agent 一张「截图 + ??？」级的模糊反馈，它能凭本文件定位功能并复现。
-> 标「待验证」的条目宁窄勿错；核实后回填。
+> 本目录从**用户视角**映射每一个功能：它是什么、怎么到达、怎么用、怎么驱动（浏览器自动化）。
+> **每个功能一个文件**（`features/`），横跨多功能的旅程单列 `features/cross-cutting-flows.md`。
+> 驱动/复现某个界面之前，先读对应的功能文件。**这些文件教的是「怎么用」，不是「怎么实现」**
+> ——实现细节看代码，代码比任何文档都变得快。
+> 本地图是**持续维护的验证源头**：要证明一个改动有效或没破坏什么，就按下方规范真实驱动 dev 构建。
 
-## 总表
+## 维护规则
 
-| 屏 | `data-screen` | 是什么 | 用户如何到达 | 代码入口 | 自动化定位 |
-|---|---|---|---|---|---|
-| 0 | `rest` | 太极呼吸，等待起卦 | 默认首屏 | `screens/RestScreen.tsx`；FSM 在 `App.tsx` | `section[data-screen="rest"]` |
-| 1 | `generate` | 生演：太极→两仪→四象→八卦，点击驱动共 14 次，可跳过 | 屏 0 单击太极（或 `Enter`/`Space`） | `screens/GenerateScreen.tsx` + 控制器 `grow/grow.ts` + 节点模型 `core/grow-model.ts` | `section[data-screen="generate"]` |
-| 2 | `matrix` | 六十四卦 8×8 方阵，静态展示 | 屏 1 完成（或 Esc）后进入 | `screens/MatrixScreen.tsx` + `plays/playMatrix.ts` | `section[data-screen="matrix"]` |
-| 3 | `cast` | 起卦：六爻自下而上大衍抽取，「蓄—落—显」节奏，可跳过 | 屏 2 点「继续 · 起卦」 | `screens/CastScreen.tsx` + `plays/playCast.ts` + 大衍概率在 `core/rules.ts` | `section[data-screen="cast"]` |
-| 4 | `settle` | 成卦：本卦 + 之卦，各带卦名 | 屏 3 六爻落定后进入 | `screens/SettleScreen.tsx` + `plays/playSettle.ts` | `section[data-screen="settle"]` |
-| 5 | `network` | 错综演算：三栏对照 + 展示位，点卦卡当场演算 | 屏 4 点「展开错综 · 十五卦」 | `screens/NetworkScreen.tsx` + 控制器 `stage/stage.ts` + `stage/variants.ts` | `section[data-screen="network"]`；卦卡选择器待验证 |
+- 凡改动功能入口 / 快捷键 / DOM 结构 / `data-screen` 的 PR，必须同步更新对应功能文件。
+- 验收标准：给 agent 一张「截图 + ??？」级的模糊反馈，它能凭本地图定位功能并复现。
+- 标「待验证」的条目宁窄勿错；错误的选择器比空白更害 agent。核实后回填。
 
-## 全局键盘与跳屏
+## 基线前置条件（Baseline preconditions）
 
-- `Esc`：任意屏跳过（屏 1/3 直落定，其余推进——逐屏语义待验证）。
-- 屏 0：`Enter` / `Space` 等效单击太极；屏 1：可点节点均可用 `Tab` 聚焦、`Enter`/`Space` 触发。
-- dev 控制台 `window.YI`（生产构建没有）：`YI.goto('matrix')` 直接跳屏、
-  `YI.STAGE.SHOW.bits` 展示位当前卦、`YI.RULES.bitsToName(bits)` 卦名反查。
+除非功能文件另有覆盖，驱动前默认：
 
-## 已知坑（看似 bug、实为有意，不许「修」）
+1. dev 构建已起（`cd frontend && npm run dev`），无端口冲突；
+2. 页面可访问（注意子路径 `/2026-10-9-Yi/`）；
+3. 无残留模态/浮层，处于默认首屏（太极呼吸）；
+4. 某前置不可满足时（如 headless 无浏览器工具），**跳过该项并在验证证明里写明**，不许静默跳过。
 
-- 屏 1 顶端八卦顺序是**随机**的，屏 2 方阵是**固定**先天序——两屏不一致是有意为之。
-- 屏 1 先抽出的「仪」在**左边**：左右顺序由第一抽决定，不是固定「阳左阴右」。
-- 屏 5 六爻皆静时展示位**留空**标「无动爻」：之卦 === 本卦，语义坍塌，留空是正确行为。
-- 屏 1 节奏「感觉慢」是有意的：`DUR` 720/560/520ms，第 3 段与下一次点击并行 → 感知间隔 ≈1.1s。
+## 驱动规范（Driving conventions）
 
-## 关键预算（改屏 1 前必读）
+- 选择器**优先 `section[data-screen="…"]` 与语义化 id**，class 选择器只是兜底；
+- **轮询可观察的终态**（`data-screen` 变化、`.active` 类、元素出现），禁止固定 sleep——
+  流式/动画是非确定性的，等终态不等时长；
+- **优先键盘（已注册的按键）而非坐标点击**——键盘走的是能量用户路径，也更稳；
+- 预期「无 console 报错」的流程，必须全程开着 console 监听走完；
+- 开发者调试入口 `window.YI` 仅 dev 构建可用（生产没有），不要在生产等价检查（preview）里依赖它；
+- 真实 OS 级交互（文件拖放、原生右键菜单）视为 manual，除非功能文件声明支持。
 
-- 尺寸按 `core/data.ts` 的 `GROW` 公式预算、**不测量**：`x(col,d) = (col+.5)/2^d × W`、`y(d) = Y0 − d×RH`。
-- 宽度校验 `8×84 + 7×41 = 959 ≤ 1000`：节点再加宽到 96 就溢出。
-- 翻爻只 morph `scaleX`，不换 DOM；SVG 爻线的 `transform-box: fill-box` 不能丢（`transform-origin` 会跑偏）。
+## 功能文件索引
 
-## 领域速记
-
-- 爻 = 1 bit 自下而上 `[初…上]`，阳=1；三爻值 = b0 + b1×2 + b2×4（坤0 震1 坎2 兑3 艮4 离5 巽6 乾7）；重卦值 = 下卦 + 上卦×8。
-- 两套独立随机：屏 1 生演 1/2 均匀、第 2 个子节点 = 第 1 个之反（每层恒 2^d 互异节点，有专门断言）；
-  屏 3 大衍筮法：老阴 1/16 · 少阳 5/16 · 少阴 7/16 · 老阳 3/16。
-- 14 个变体（变/错/综/交/互×5）全由 `core/rules.ts` 纯函数算出；卦名一律 bits 反查；动爻左侧标「动」字。
-- 完整论证见 README「屏 1」「屏 5」「规则实现」「视觉约定」。
+| 文件 | 屏 | `data-screen` |
+|---|---|---|
+| [features/rest.md](features/rest.md) | 0 太极呼吸 | `rest` |
+| [features/generate.md](features/generate.md) | 1 生演 | `generate` |
+| [features/matrix.md](features/matrix.md) | 2 六十四卦方阵 | `matrix` |
+| [features/cast.md](features/cast.md) | 3 起卦 | `cast` |
+| [features/settle.md](features/settle.md) | 4 成卦 | `settle` |
+| [features/network.md](features/network.md) | 5 错综演算 | `network` |
+| [features/cross-cutting-flows.md](features/cross-cutting-flows.md) | 横跨多屏的旅程（键盘、跳屏、调试） | — |
