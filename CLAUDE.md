@@ -35,10 +35,10 @@
 4. **新功能加新文件，不在共享根上开分支**：新屏 = `screens/` 新文件 + `App.tsx` 一处注册。
 5. **例外必须狭窄、显式、按架构变更评审**：Ban list 的豁免在 PR 里说明理由，不留口头特例。
 
-## Ban list（agent 惯犯模式；暂为软约束，随真实失败逐条迁 CI）
+## Ban list（agent 惯犯模式；逐条迁 CI——已硬化：六屏常驻；其余随真实失败待迁）
 
 - 禁止卸载非当前屏：六屏常驻挂载，`App.tsx` 只切 `.active` 类——卸载会杀 CSS 淡入与
-  WAAPI `fill:forwards` 终态。
+  WAAPI `fill:forwards` 终态（CI 哨兵兜底）。
 - 屏 5 连点禁止 `ANIM.cancelAll()`（切屏解药，会杀卡片入场尾帧）——只用局部 `SHOW.seq` + `cancelGuest()`。
 - 禁止重渲染控制器写入的容器：React 管结构、WAAPI 管像素，动画子树由控制器命令式建造。
 - 禁止按位置贴卦名：一律由 bits 反查（`RULES.bitsToName` / `bitsToTrigram` / `bitsToSixiang`）。

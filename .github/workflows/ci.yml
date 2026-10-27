@@ -54,6 +54,10 @@ jobs:
           grep -rnE "from ['\"](\.\./)+(screens|components|App)(/|['\"])" frontend/src/grow frontend/src/stage frontend/src/plays --include='*.ts' \
             && { echo "错误：grow|stage|plays 收 ref 操作容器，不许 import screens|components"; deperr=1; }
           [ "$deperr" -eq 0 ] || exit 1
+          # 六屏常驻挂载哨兵（Ban list 硬化：卸载非当前屏会杀 CSS 淡入与 fill:forwards 终态）
+          screens=$(grep -c 'data-screen="' frontend/src/App.tsx || true)
+          [ "$screens" = "6" ] \
+            || { echo "错误：App.tsx 应常驻挂载六屏（data-screen 应为 6 处），当前 ${screens:-0} 处——卸载非当前屏是禁止项"; exit 1; }
 
       # —— 前端 ——
       - name: 安装前端依赖
