@@ -45,13 +45,13 @@ jobs:
           # 依赖方向哨兵（架构五规则之二：禁止的依赖必须机械失败）
           # 方向：core ← state ← anim ← grow|stage|plays ← screens/components ← App
           deperr=0
-          grep -rnE "from ['\"]\.\./(state|anim|grow|stage|plays|screens|components|util|App)" frontend/src/core --include='*.ts' \
+          grep -rnE "from ['\"](\.\./)+(state|anim|grow|stage|plays|screens|components|util|App)(/|['\"])" frontend/src/core --include='*.ts' \
             && { echo "错误：core/ 是纯逻辑层，禁止 import 任何上层目录"; deperr=1; }
-          grep -rnE "from ['\"]\.\./(anim|grow|stage|plays|screens|components|App)" frontend/src/state --include='*.ts' \
+          grep -rnE "from ['\"](\.\./)+(anim|grow|stage|plays|screens|components|App)(/|['\"])" frontend/src/state --include='*.ts' \
             && { echo "错误：state/ 只许依赖 core/"; deperr=1; }
-          grep -rnE "from ['\"]\.\./(state|grow|stage|plays|screens|components|App)" frontend/src/anim --include='*.ts' \
+          grep -rnE "from ['\"](\.\./)+(state|grow|stage|plays|screens|components|App)(/|['\"])" frontend/src/anim --include='*.ts' \
             && { echo "错误：anim/ 只许依赖 core/（它不认识业务语义）"; deperr=1; }
-          grep -rnE "from ['\"]\.\./(screens|components|App)" frontend/src/grow frontend/src/stage frontend/src/plays --include='*.ts' \
+          grep -rnE "from ['\"](\.\./)+(screens|components|App)(/|['\"])" frontend/src/grow frontend/src/stage frontend/src/plays --include='*.ts' \
             && { echo "错误：grow|stage|plays 收 ref 操作容器，不许 import screens|components"; deperr=1; }
           [ "$deperr" -eq 0 ] || exit 1
 
