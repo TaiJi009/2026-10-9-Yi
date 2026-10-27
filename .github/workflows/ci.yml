@@ -27,6 +27,22 @@ jobs:
         with:
           node-version: 24
 
+      # —— 约束哨兵：CLAUDE.md 软约束的硬版本，违者红（报错信息即修复指引）——
+      - name: 约束哨兵
+        run: |
+          # AGENTS.md 必须是指向 CLAUDE.md 的符号链接（多 harness 共用一份真源）
+          [ -L AGENTS.md ] || { echo "错误：AGENTS.md 必须是指向 CLAUDE.md 的符号链接"; exit 1; }
+          [ "$(readlink AGENTS.md)" = "CLAUDE.md" ] \
+            || { echo "错误：AGENTS.md 应指向 CLAUDE.md，当前指向 $(readlink AGENTS.md)"; exit 1; }
+          # 记忆文件封顶：膨胀会稀释遵循度，新约束优先合并旧条目或拆去 docs/agents/
+          lines=$(wc -l < CLAUDE.md | tr -d ' ')
+          [ "$lines" -le 120 ] \
+            || { echo "错误：CLAUDE.md 已 ${lines} 行（上限 120）——精简合并，或拆到 docs/agents/、README"; exit 1; }
+          # core/ 纯逻辑：禁止 DOM / 浏览器全局（vitest 跑 node 环境，无 jsdom）
+          if grep -rnE 'document\.|window\.|navigator\.|querySelector' frontend/src/core --include='*.ts'; then
+            echo "错误：core/ 出现 DOM / 浏览器 API —— 移到 anim/ 或控制器层"; exit 1
+          fi
+
       # —— 前端 ——
       - name: 安装前端依赖
         run: npm ci
