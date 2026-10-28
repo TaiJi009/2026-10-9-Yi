@@ -1,6 +1,7 @@
-# 开发文档
-docs/
+# 开发文档（仅本地保留；docs/agents/ 例外——agent 工程资产必须入库）
+docs/*
 .docs/
+!docs/agents/
 
 # macOS
 .DS_Store

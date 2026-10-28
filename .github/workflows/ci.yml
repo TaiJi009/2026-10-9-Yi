@@ -27,6 +27,41 @@ jobs:
         with:
           node-version: 24
 
+      # —— 约束哨兵：CLAUDE.md 软约束的硬版本，违者红（报错信息即修复指引）——
+      - name: 约束哨兵
+        run: |
+          # AGENTS.md 必须是指向 CLAUDE.md 的符号链接（多 harness 共用一份真源）
+          [ -L AGENTS.md ] || { echo "错误：AGENTS.md 必须是指向 CLAUDE.md 的符号链接"; exit 1; }
+          [ "$(readlink AGENTS.md)" = "CLAUDE.md" ] \
+            || { echo "错误：AGENTS.md 应指向 CLAUDE.md，当前指向 $(readlink AGENTS.md)"; exit 1; }
+          # 记忆文件封顶：膨胀会稀释遵循度，新约束优先合并旧条目或拆去 docs/agents/
+          lines=$(wc -l < CLAUDE.md | tr -d ' ')
+          [ "$lines" -le 120 ] \
+            || { echo "错误：CLAUDE.md 已 ${lines} 行（上限 120）——精简合并，或拆到 docs/agents/、README"; exit 1; }
+          # core/ 纯逻辑：禁止 DOM / 浏览器全局（vitest 跑 node 环境，无 jsdom）
+          if grep -rnE 'document\.|window\.|navigator\.|querySelector' frontend/src/core --include='*.ts'; then
+            echo "错误：core/ 出现 DOM / 浏览器 API —— 移到 anim/ 或控制器层"; exit 1
+          fi
+          # 依赖方向哨兵（架构五规则之二：禁止的依赖必须机械失败）
+          # 方向：core ← state ← anim ← grow|stage|plays ← screens/components ← App
+          deperr=0
+          grep -rnE "from ['\"](\.\./)+(state|anim|grow|stage|plays|screens|components|util|App)(/|['\"])" frontend/src/core --include='*.ts' \
+            && { echo "错误：core/ 是纯逻辑层，禁止 import 任何上层目录"; deperr=1; }
+          grep -rnE "from ['\"](\.\./)+(anim|grow|stage|plays|screens|components|App)(/|['\"])" frontend/src/state --include='*.ts' \
+            && { echo "错误：state/ 只许依赖 core/"; deperr=1; }
+          grep -rnE "from ['\"](\.\./)+(state|grow|stage|plays|screens|components|App)(/|['\"])" frontend/src/anim --include='*.ts' \
+            && { echo "错误：anim/ 只许依赖 core/（它不认识业务语义）"; deperr=1; }
+          grep -rnE "from ['\"](\.\./)+(screens|components|App)(/|['\"])" frontend/src/grow frontend/src/stage frontend/src/plays --include='*.ts' \
+            && { echo "错误：grow|stage|plays 收 ref 操作容器，不许 import screens|components"; deperr=1; }
+          [ "$deperr" -eq 0 ] || exit 1
+          # 六屏常驻挂载哨兵（Ban list 硬化：卸载非当前屏会杀 CSS 淡入与 fill:forwards 终态）
+          screens=$(grep -c 'data-screen="' frontend/src/App.tsx || true)
+          [ "$screens" = "6" ] \
+            || { echo "错误：App.tsx 应常驻挂载六屏（data-screen 应为 6 处），当前 ${screens:-0} 处——卸载非当前屏是禁止项"; exit 1; }
+          # 紫家族新色哨兵（Ban list 硬化：明度管语义、紫罗兰只承载交互态）
+          # 判据与规范紫清单在 scripts/check-violet.py——本地同命令可跑
+          python3 scripts/check-violet.py
+
       # —— 前端 ——
       - name: 安装前端依赖
         run: npm ci

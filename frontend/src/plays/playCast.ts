@@ -1,9 +1,10 @@
 /* ==========================================================================
    屏 3 · 起卦（逐字移植 PLAYS.cast L1563–1635）
 
-   ★ 与原型唯一的结构差异：爻槽不再由本函数创建，
-     而是 React 已经挂好的 6 个 .slot（refs.slots）。
-     逐爻「蓄→落→显」的动画时序、写 STORE 的时机、counter 更新，全照旧。
+   ★ 与原型的结构差异：爻槽不再由本函数创建，而是 React 已经挂好的 6 个 .slot（refs.slots）。
+   ★ 时序差异：三段的时长与拍间留白全部取自 `DUR.cast*`（2026-10-28 起整体 ×0.8），
+     本函数内不再出现裸毫秒数——调节奏只改 data.ts，三段比例与次序由 cast-rhythm.test.ts 钉住。
+     写 STORE 的时机、counter 更新、epoch 取消检查，全照旧。
    ========================================================================== */
 
 import { ANIM } from '../anim/anim'
@@ -61,9 +62,9 @@ export async function playCast(refs: CastRefs, deps: CastDeps) {
         { transform: 'translateX(1.5px)' },
         { transform: 'translateX(0)' },
       ],
-      { duration: DUR.charge, easing: EASE.charge, fill: 'none' },
+      { duration: DUR.castCharge, easing: EASE.charge, fill: 'none' },
     )
-    ANIM.play(yao, [{ opacity: 0.1 }, { opacity: 0.4 }], { duration: DUR.charge, easing: EASE.charge, fill: 'none' })
+    ANIM.play(yao, [{ opacity: 0.1 }, { opacity: 0.4 }], { duration: DUR.castCharge, easing: EASE.charge, fill: 'none' })
     await ANIM.await_(shake)
     if (!ANIM.alive(epoch)) return
 
@@ -74,14 +75,14 @@ export async function playCast(refs: CastRefs, deps: CastDeps) {
     const drop = ANIM.play(yao, [
       { opacity: 0, transform: 'translateY(-46px) scale(.68)' },
       { opacity: 1, transform: 'translateY(0) scale(1)' },
-    ], { duration: DUR.drop, easing: EASE.drop })
+    ], { duration: DUR.castDrop, easing: EASE.drop })
     await ANIM.await_(drop)
     if (!ANIM.alive(epoch)) return
 
     // 显：动爻持续呼吸
     if (moving) {
       ANIM.play(yao.querySelector('.glow')!, [{ opacity: 0 }, { opacity: 0.95 }, { opacity: 0.5 }], {
-        duration: DUR.settle + 220,
+        duration: DUR.castGlow,
         easing: EASE.settle,
         fill: 'none',
       })
@@ -95,7 +96,7 @@ export async function playCast(refs: CastRefs, deps: CastDeps) {
     counter.textContent = String(i + 1)
     STORE.set({ values: values.slice(), bits: bits.slice(), moves: moves.slice() })
 
-    await ANIM.sleep(i < 5 ? 300 : 480)
+    await ANIM.sleep(i < 5 ? DUR.castGap : DUR.castGapLast)
     if (!ANIM.alive(epoch)) return
   }
 
