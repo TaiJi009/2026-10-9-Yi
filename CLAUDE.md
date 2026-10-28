@@ -24,6 +24,8 @@
 - `core/` 禁止 import 任何 DOM / 浏览器 API；依赖方向
   `core → state → anim → grow|stage|plays → screens → App.tsx`（CI 哨兵全链路检查）。
 - 本文件 ≤120 行、AGENTS.md 必须是指向本文件的符号链接（CI 哨兵）。
+- CI 内联只写单行 shell；多行脚本（python 等）一律放 `scripts/` 独立文件调用——
+  YAML 字面块里顶格代码会炸 workflow 解析，且 `scripts/check-violet.py` 是照抄模板。
 - `docs/` 默认不入库，唯 `docs/agents/` 例外（agent 工程资产必须随仓库走）。
 
 ## 目录约定（架构五规则，改结构前先读）
