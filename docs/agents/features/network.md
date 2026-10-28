@@ -20,3 +20,8 @@
 - **已知坑**：**连点绝不可用 `ANIM.cancelAll()`**（切屏解药，会杀卡片入场尾帧）——只用局部
   `SHOW.seq` + `cancelGuest()`；互卦的裂变是参数化的（源只有 4-5 个不同下标，一个源供两个目标时
   该爻裂成两条——这是视觉来源，不是 bug）。
+- **待定性缺陷（eval 迭代 2 发现，未修）**：点「互」类卦卡可复现 console warning
+  `Invalid keyframe value ... translateY(NaNpx)`——指向 `stage.ts` 的
+  `parseFloat(getComputedStyle(...).rowGap)`：`--ygap` 只在媒体查询断点内赋值，视口在断点外时
+  解析不出数字。HEAD 基线即复现，与任何改动无关；是否缺陷、如何修（改 CSS 断点覆盖 or 常量化）
+  需先定性，勿顺手修。
