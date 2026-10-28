@@ -70,7 +70,15 @@ export const GROW = { W: 1000, Y0: 620, RH: 180, TAIJI_R: 34, GW: 84, GT: 6, GGA
 export const MATRIX = { X0: 90, Y0: 80, CW: 125, CH: 100, GW: 84, GT: 6, GGAP: 11 }
 
 export const DUR = {
-  charge: 520, drop: 250, settle: 220, flip: 340, rotate: 620,     // 起卦 / 通用
+  // 起卦（屏 3）一拍 = 蓄 + 落 + 显 = castCharge + castDrop + castGap。
+  // 2026-10-28 整体调快 20%：五个常量一律 ×0.8 后取整到 10ms（原 520/250/300/480/440）。
+  // 同比缩放（而不是只削蓄段）让三段时长比例一位不动——比例就是「蓄—落—显」的叙事本身。
+  // 常量一拍 860ms（原 1070，−19.6%）；dev 构建实测一拍 950ms、六爻全程 5.46s
+  // （原 1166ms / 6.69s，各 −18.5% / −18.3%）。常量与实测差的约 90ms 是 WAAPI 帧调度的固定开销
+  // （await finished + 下一段 play），不在这些常量里——别为它再削常量，会把三段比例削歪。
+  // ★ 不变量（cast-rhythm.test.ts 兜底）：castCharge 恒为三段最长——再调也同比缩放，别只动一个。
+  castCharge: 420, castDrop: 200, castGap: 240, castGapLast: 380, castGlow: 350,
+  flip: 340, rotate: 620,                                         // 通用翻转 / 旋转
   genCharge: 720, genDraw: 560, genSettle: 520,                  // 生演抽爻三段
   travel: 620, clearShow: 260, reveal: 480, fission: 600,         // 错综演算
 }
